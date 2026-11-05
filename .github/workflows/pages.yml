@@ -42,7 +42,7 @@ jobs:
           }
           fs.writeFileSync('public/config.js', `window.APP_CONFIG = ${JSON.stringify({ API_BASE_URL: backend.origin })};\n`);
           NODE
-          npm install --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           mkdir -p public/vendor
           cp node_modules/livekit-client/dist/livekit-client.umd.js public/vendor/livekit-client.js
       - uses: actions/upload-pages-artifact@v3

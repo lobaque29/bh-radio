@@ -33,8 +33,8 @@ Para testar com celulares reais é preciso **HTTPS**: faça o deploy (passo 3) o
 ## 3. Publicar a interface no GitHub Pages
 O Pages hospeda somente arquivos estáticos. O servidor Node.js continua necessário para login, WebSocket, tokens do LiveKit e moderação; publique-o em Render, Railway ou Fly.io.
 
-1. Em Render, crie um **Web Service** apontando para este repositório. Use `npm install` como build command e `npm start` como start command.
-2. No serviço, configure `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `ADMIN_KEY`, `ACCESS_CODE` e `ALLOWED_ORIGINS`. Para este repositório, a origem do Pages é `https://lobaque29.github.io` (sem `/bh-radio`). Inclua `http://localhost:3000` se também quiser testar localmente.
+1. Em Render, escolha **New → Blueprint** e selecione este repositório. O arquivo `render.yaml` cria o backend e solicita as credenciais do LiveKit, `ADMIN_KEY` e `ACCESS_CODE` no painel.
+2. Gere um `ADMIN_KEY` aleatório com pelo menos 32 caracteres e um `ACCESS_CODE` privado com pelo menos 12 caracteres. O servidor recusa iniciar em produção se essas configurações estiverem ausentes ou forem placeholders.
 3. Em **Settings → Secrets and variables → Actions → Variables**, crie `BACKEND_URL` com a origem HTTPS do servidor, por exemplo `https://seu-app.onrender.com` (sem caminho final). É uma variável pública do frontend, não um segredo.
 4. Em **Settings → Pages**, escolha **GitHub Actions** como fonte de publicação.
 5. Depois de configurar `BACKEND_URL`, abra **Actions → Deploy GitHub Pages → Run workflow** para a primeira publicação. Os pushes seguintes para `main` publicam automaticamente.
@@ -42,7 +42,7 @@ O Pages hospeda somente arquivos estáticos. O servidor Node.js continua necess�
 
 O endereço do app será `https://lobaque29.github.io/bh-radio/`. O domínio do backend é uma configuração pública do frontend; as chaves do LiveKit e `ADMIN_KEY` ficam somente nas variáveis do servidor. No plano gratuito da Render o serviço pode dormir após inatividade.
 
-Railway e Fly.io também podem hospedar o backend. Em qualquer plataforma, mantenha HTTPS e WebSocket habilitados.
+O Blueprint usa o plano gratuito da Render, que pode dormir após inatividade; para o piloto real, selecione um plano sempre ativo. Railway e Fly.io também podem hospedar o backend. Em qualquer plataforma, mantenha HTTPS e WebSocket habilitados e defina `ALLOWED_ORIGINS=https://lobaque29.github.io`.
 
 ## 4. Moderação (rotas /admin, header `x-admin-key`)
 ```bash

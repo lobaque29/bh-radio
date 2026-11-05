@@ -13,6 +13,16 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   console.error('Faltam as variáveis LIVEKIT_URL, LIVEKIT_API_KEY e LIVEKIT_API_SECRET.');
   process.exit(1);
 }
+if (process.env.NODE_ENV === 'production') {
+  const invalidConfig = [];
+  if (!ADMIN_KEY || ADMIN_KEY === 'troque-por-uma-senha-longa' || ADMIN_KEY === 'SUBSTITUA_POR_UMA_CHAVE_ALEATORIA_COM_PELO_MENOS_32_CARACTERES' || ADMIN_KEY.length < 32) invalidConfig.push('ADMIN_KEY (mínimo 32 caracteres)');
+  if (!ACCESS_CODE || ACCESS_CODE === 'SUBSTITUA_POR_UM_CODIGO_PRIVADO' || ACCESS_CODE === 'piloto-bh' || ACCESS_CODE.length < 12) invalidConfig.push('ACCESS_CODE (mínimo 12 caracteres)');
+  if (!allowedOrigins.size) invalidConfig.push('ALLOWED_ORIGINS');
+  if (invalidConfig.length) {
+    console.error('Configuração de produção inválida:', invalidConfig.join(', '));
+    process.exit(1);
+  }
+}
 
 const CHANNELS = [0, 1, 2, 3, 4];
 const MAX_TALK_MS = 45000;
@@ -96,11 +106,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 const hits = new Map();
+const MAX_LOGIN_IPS = 10000;
 app.post('/api/login', (req, res) => {
   const now = Date.now();
-  const h = (hits.get(req.ip) || []).filter(t => now - t < 60000);
-  h.push(now); hits.set(req.ip, h);
-  if (h.length > 10) return res.status(429).json({ error: 'Muitas tentativas. Aguarde um minuto.' });
+  const isNewIp = !hits.has(req.ip);
+  const attempts = (hits.get(req.ip) || []).filter(t => now - t < 60000);
+  if (attempts.length >= 10) {
+    hits.delete(req.ip); hits.set(req.ip, attempts);
+    return res.status(429).json({ error: 'Muitas tentativas. Aguarde um minuto.' });
+  }
+  attempts.push(now);
+  if (isNewIp && hits.size >= MAX_LOGIN_IPS) hits.delete(hits.keys().next().value);
+  hits.delete(req.ip); hits.set(req.ip, attempts);
 
   const { name, whatsapp, code, consent } = req.body || {};
   const nm = String(name || '').trim().slice(0, 24);
@@ -227,7 +244,6 @@ wss.on('connection', (ws, req) => {
         if (!f || f.uid === s.uid) return;
         const r = { ts: new Date().toISOString(), by: s.name, byWa: s.wa, target: f.name, targetWa: f.wa, ch: s.ch };
         reports.push(r); if (reports.length > 500) reports.shift();
-        console.log('[DENÚNCIA]', JSON.stringify(r));
         send(ws, { t: 'toast', msg: 'Denúncia registrada. Obrigado.' });
         break;
       }
