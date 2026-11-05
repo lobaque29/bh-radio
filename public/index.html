@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07090c">
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <title>BH Rádio</title>
 <style>
 :root{--bg:#07090c;--bg2:#10151c;--surface:rgba(255,255,255,.05);--line:rgba(255,255,255,.1);--text:#f4f6f8;--muted:#8b95a3;--ok:#22e07a;--bad:#ff4d4d;--c:#ffb020;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -102,10 +102,12 @@ button,input{font:inherit}
   <div class="hint">Mantenha a tela ligada. No PC: barra de espaço para falar.</div>
 </div>
 
-<script src="/vendor/livekit-client.js"></script>
+<script src="./config.js"></script>
+<script src="./vendor/livekit-client.js"></script>
 <script>
 (function(){
 var $=function(i){return document.getElementById(i)};
+var apiBase=String((window.APP_CONFIG||{}).API_BASE_URL||"").replace(/\/+$/,"");
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var CH=[{t:"Alerta",s:"Geral",k:"#ff4d4d"},{t:"Centro-Sul",k:"#ffb020"},{t:"Zona Oeste",k:"#4aa8ff"},{t:"Zona Leste",k:"#22e07a"},{t:"Zona Noroeste",k:"#b57bff"}];
 var KINDS=[["blitz","🚔","BLITZ"],["chuva","🌧️","CHUVA"],["acidente","⚠️","ACIDENTE"]];
@@ -130,16 +132,16 @@ async function keepAwake(){try{if(navigator.wakeLock&&!wake)wake=await navigator
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&!$("main").classList.contains("hide"))keepAwake()});
 
 /* ---------- login ---------- */
-try{var sv=JSON.parse(localStorage.getItem("bhr")||"{}");$("iname").value=sv.n||"";$("iwa").value=sv.w||"";$("icode").value=sv.c||""}catch(e){}
+try{var sv=JSON.parse(localStorage.getItem("bhr")||"{}");$("iname").value=sv.n||"";$("iwa").value=sv.w||""}catch(e){}
 $("go").onclick=async function(){
   $("err").textContent="";
   var body={name:$("iname").value,whatsapp:$("iwa").value,code:$("icode").value,consent:$("iok").checked};
   try{
-    var r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    var r=await fetch(apiBase+"/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     var j=await r.json();
     if(!r.ok){$("err").textContent=j.error||"Erro ao entrar.";return}
     sid=j.sid;beep(1,.01);
-    try{localStorage.setItem("bhr",JSON.stringify({n:body.name,w:body.whatsapp,c:body.code}))}catch(e){}
+    try{localStorage.setItem("bhr",JSON.stringify({n:body.name,w:body.whatsapp}))}catch(e){}
     $("login").classList.add("hide");$("main").classList.remove("hide");
     leaving=false;keepAwake();refreshPos();setInterval(refreshPos,60000);
     await openWS();sendWS({t:"join",ch:cur});
@@ -155,7 +157,8 @@ $("out").onclick=function(){backToLogin("")};
 
 /* ---------- WebSocket ---------- */
 function openWS(){return new Promise(function(res,rej){
-  var u=(location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws?sid="+sid;
+  var backend=new URL(apiBase||location.origin);
+  var u=(backend.protocol==="https:"?"wss://":"ws://")+backend.host+"/ws?sid="+encodeURIComponent(sid);
   ws=new WebSocket(u);ws.onopen=res;ws.onerror=function(){rej()};
   ws.onmessage=function(e){try{onMsg(JSON.parse(e.data))}catch(x){console.error(x)}};
   ws.onclose=onClose;
@@ -320,7 +323,7 @@ $("alist").onclick=function(e){
 };
 setInterval(function(){if(alerts.size)renderAlerts()},15000);
 
-if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(function(){});
 })();
 </script>
 </body>

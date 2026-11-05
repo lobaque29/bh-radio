@@ -30,13 +30,19 @@ npm run dev              # precisa de Node 20.6 ou mais novo
 Abra http://localhost:3000. Microfone e GPS funcionam em `localhost`.
 Para testar com celulares reais é preciso **HTTPS**: faça o deploy (passo 3) ou use um túnel como ngrok.
 
-## 3. Colocar no ar (exemplo: Render)
-1. Suba esta pasta para um repositório no GitHub.
-2. Em render.com: **New → Web Service**, escolha o repositório.
-3. Build command: `npm install` · Start command: `npm start`
-4. Em **Environment**, cadastre: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `ADMIN_KEY`, `ACCESS_CODE` (e `BANNED`, se quiser).
-5. A Render dá um endereço `https://...onrender.com` com HTTPS e WebSocket. Envie o link + o código do piloto aos motoboys.
-Railway e Fly.io funcionam do mesmo jeito. No plano gratuito da Render o serviço "dorme" depois de um tempo sem uso e demora a acordar; para o piloto, use um plano pago pequeno.
+## 3. Publicar a interface no GitHub Pages
+O Pages hospeda somente arquivos estáticos. O servidor Node.js continua necessário para login, WebSocket, tokens do LiveKit e moderação; publique-o em Render, Railway ou Fly.io.
+
+1. Em Render, crie um **Web Service** apontando para este repositório. Use `npm install` como build command e `npm start` como start command.
+2. No serviço, configure `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `ADMIN_KEY`, `ACCESS_CODE` e `ALLOWED_ORIGINS`. Para este repositório, a origem do Pages é `https://lobaque29.github.io` (sem `/bh-radio`). Inclua `http://localhost:3000` se também quiser testar localmente.
+3. Em **Settings → Secrets and variables → Actions → Variables**, crie `BACKEND_URL` com a origem HTTPS do servidor, por exemplo `https://seu-app.onrender.com` (sem caminho final). É uma variável pública do frontend, não um segredo.
+4. Em **Settings → Pages**, escolha **GitHub Actions** como fonte de publicação.
+5. Faça push para `main`. O workflow só executa quando `BACKEND_URL` estiver definido; então valida a URL, instala as dependências, inclui o bundle do LiveKit e publica a pasta `public/`.
+6. Se o Pages não permitir publicação enquanto o repositório for privado no seu plano, será necessário ajustar o plano ou a visibilidade do repositório.
+
+O endereço do app será `https://lobaque29.github.io/bh-radio/`. O domínio do backend é uma configuração pública do frontend; as chaves do LiveKit e `ADMIN_KEY` ficam somente nas variáveis do servidor. No plano gratuito da Render o serviço pode dormir após inatividade.
+
+Railway e Fly.io também podem hospedar o backend. Em qualquer plataforma, mantenha HTTPS e WebSocket habilitados.
 
 ## 4. Moderação (rotas /admin, header `x-admin-key`)
 ```bash

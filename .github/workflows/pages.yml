@@ -1,0 +1,52 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ vars.BACKEND_URL != '' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/configure-pages@v5
+      - name: Prepare static assets
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const raw = process.env.BACKEND_URL;
+          if (!raw) throw new Error('Set the BACKEND_URL Actions variable before deploying Pages.');
+          const backend = new URL(raw);
+          if (backend.protocol !== 'https:' || backend.pathname !== '/' || backend.search || backend.hash) {
+            throw new Error('BACKEND_URL must be an HTTPS origin without a path.');
+          }
+          fs.writeFileSync('public/config.js', `window.APP_CONFIG = ${JSON.stringify({ API_BASE_URL: backend.origin })};\n`);
+          NODE
+          npm install --ignore-scripts --no-audit --no-fund
+          mkdir -p public/vendor
+          cp node_modules/livekit-client/dist/livekit-client.umd.js public/vendor/livekit-client.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4

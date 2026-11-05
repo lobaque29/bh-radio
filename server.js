@@ -7,7 +7,8 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { AccessToken } = require('livekit-server-sdk');
 
-const { PORT = 3000, LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, ADMIN_KEY, ACCESS_CODE, BANNED = '' } = process.env;
+const { PORT = 3000, LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, ADMIN_KEY, ACCESS_CODE, BANNED = '', ALLOWED_ORIGINS = '' } = process.env;
+const allowedOrigins = new Set(ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean));
 if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   console.error('Faltam as variáveis LIVEKIT_URL, LIVEKIT_API_KEY e LIVEKIT_API_SECRET.');
   process.exit(1);
@@ -78,6 +79,17 @@ function kick(wa, why) {
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '10kb' }));
+app.use((req, res, next) => {
+  const origin = req.get('Origin');
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+  }
+  next();
+});
 app.get('/vendor/livekit-client.js', (req, res) =>
   res.sendFile(path.join(__dirname, 'node_modules/livekit-client/dist/livekit-client.umd.js')));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -126,6 +138,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 });
 
 wss.on('connection', (ws, req) => {
+  if (allowedOrigins.size && !allowedOrigins.has(req.headers.origin)) { ws.close(1008, 'origin'); return; }
   const sid = new URL(req.url, 'http://x').searchParams.get('sid');
   const s = sessions.get(sid);
   if (!s || bans.has(s.wa)) { ws.close(4001, 'auth'); return; }
