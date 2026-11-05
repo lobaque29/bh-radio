@@ -1,0 +1,68 @@
+# BH Rádio — piloto
+
+Rádio PTT por região para motoboys de BH. Voz via **LiveKit** (WebRTC + Opus 24 kbps com DTX), controle de palavra, alertas (blitz, chuva, acidente) e **localização da blitz ao vivo** para quem está no canal.
+
+## O que já funciona
+- Cadastro rápido (nome + WhatsApp + código do piloto + consentimento)
+- 5 canais (CH 0 geral, CH 1–4 regiões); quem está no CH 0 recebe alertas de todos os canais
+- Um fala por vez (o servidor decide quem tem a palavra; máximo 45 s por fala)
+- Alertas com som e vibração; blitz com GPS ao vivo por 5 min, distância até você e botão "Já saiu" (2 confirmações removem)
+- Denúncia de quem está falando e banimento por WhatsApp (rotas /admin)
+- PWA instalável (Adicionar à tela inicial)
+
+## O que NÃO funciona ainda (limites do piloto em navegador)
+- **Sem áudio com a tela apagada.** O app precisa ficar aberto e com a tela ligada (ele pede "wake lock"). Rodar em segundo plano exige o app nativo (fase seguinte).
+- **PTT só por toque** (ou barra de espaço no PC). Botão de volume e fone Bluetooth só no app nativo. Por isso, no piloto, use **só com a moto parada ou com o celular no suporte sem mexer na tela em movimento**. O "Modo toque" (liga/desliga) ajuda a reduzir o esforço.
+- Estado em memória: reiniciar o servidor apaga alertas e sessões (as pessoas só reentram).
+- Uma única instância do servidor (suficiente para dezenas de pessoas).
+- Sem pagamento. Pix entra depois do piloto.
+
+## 1. Conta no LiveKit (grátis para testar)
+1. Crie conta em https://cloud.livekit.io e um projeto.
+2. Em **Settings → Keys**, crie uma chave. Anote **URL (wss://...)**, **API Key** e **API Secret**.
+
+## 2. Rodar no seu computador
+```bash
+npm install
+cp .env.example .env     # preencha com os dados do LiveKit
+npm run dev              # precisa de Node 20.6 ou mais novo
+```
+Abra http://localhost:3000. Microfone e GPS funcionam em `localhost`.
+Para testar com celulares reais é preciso **HTTPS**: faça o deploy (passo 3) ou use um túnel como ngrok.
+
+## 3. Colocar no ar (exemplo: Render)
+1. Suba esta pasta para um repositório no GitHub.
+2. Em render.com: **New → Web Service**, escolha o repositório.
+3. Build command: `npm install` · Start command: `npm start`
+4. Em **Environment**, cadastre: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `ADMIN_KEY`, `ACCESS_CODE` (e `BANNED`, se quiser).
+5. A Render dá um endereço `https://...onrender.com` com HTTPS e WebSocket. Envie o link + o código do piloto aos motoboys.
+Railway e Fly.io funcionam do mesmo jeito. No plano gratuito da Render o serviço "dorme" depois de um tempo sem uso e demora a acordar; para o piloto, use um plano pago pequeno.
+
+## 4. Moderação (rotas /admin, header `x-admin-key`)
+```bash
+curl -H "x-admin-key: SUA_CHAVE" https://SEU-APP/admin/online
+curl -H "x-admin-key: SUA_CHAVE" https://SEU-APP/admin/reports
+curl -X POST -H "x-admin-key: SUA_CHAVE" -H "Content-Type: application/json" \
+     -d '{"whatsapp":"5531999998888"}' https://SEU-APP/admin/ban
+curl -X POST -H "x-admin-key: SUA_CHAVE" -H "Content-Type: application/json" \
+     -d '{"whatsapp":"5531999998888"}' https://SEU-APP/admin/unban
+```
+Em hospedagem com disco temporário, `bans.json` pode sumir ao reiniciar; mantenha a lista também na variável `BANNED`.
+
+## 5. Checklist antes de convidar o primeiro motoboy
+- [ ] Consulta jurídica rápida: alertas de blitz e uso de fone ao conduzir
+- [ ] Política de privacidade (LGPD) publicada e linkada; o texto de consentimento do login é um mínimo, não substitui isso
+- [ ] Combinar regras do canal (sem xingamento, sem spam) e quem modera
+- [ ] Testar com 3–4 aparelhos (Android e iPhone) em 4G, com capacete/ruído de moto
+- [ ] Grupo pequeno (10–20 pessoas, 1–2 canais) por 2 semanas; medir atraso, clareza do áudio e quais alertas usam
+
+## 6. Próximos passos
+Medir o piloto → app nativo (serviço em segundo plano, PTT por volume/Bluetooth) → Pix (Mercado Pago/Asaas, depois Pix Automático) → lojas.
+
+## Estrutura
+```
+server.js          servidor: login, tokens LiveKit, controle de palavra, alertas, admin
+public/index.html  app do motoboy (tela de login + modo pilotagem)
+public/manifest.json, sw.js, icon-*.png   PWA
+```
+O cliente do LiveKit é servido por `/vendor/livekit-client.js` (vem do pacote npm `livekit-client`, arquivo `dist/livekit-client.umd.js`). Se uma versão futura mudar esse nome, ajuste a rota em `server.js`.

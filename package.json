@@ -1,0 +1,17 @@
+{
+  "name": "bh-radio",
+  "version": "0.1.0",
+  "description": "Piloto: rádio PTT por regiões para motoboys de BH",
+  "main": "server.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file=.env server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "livekit-client": "^2.5.0",
+    "livekit-server-sdk": "^2.6.0",
+    "ws": "^8.18.0"
+  }
+}
