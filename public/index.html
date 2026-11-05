@@ -132,7 +132,7 @@ async function keepAwake(){try{if(navigator.wakeLock&&!wake)wake=await navigator
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&!$("main").classList.contains("hide"))keepAwake()});
 
 /* ---------- login ---------- */
-try{var sv=JSON.parse(localStorage.getItem("bhr")||"{}");$("iname").value=sv.n||"";$("iwa").value=sv.w||""}catch(e){}
+try{var sv=JSON.parse(localStorage.getItem("bhr")||"{}");$("iname").value=sv.n||"";$("iwa").value=sv.w||"";if(Object.prototype.hasOwnProperty.call(sv,"c"))localStorage.setItem("bhr",JSON.stringify({n:sv.n||"",w:sv.w||""}))}catch(e){}
 $("go").onclick=async function(){
   $("err").textContent="";
   var body={name:$("iname").value,whatsapp:$("iwa").value,code:$("icode").value,consent:$("iok").checked};

@@ -37,8 +37,8 @@ O Pages hospeda somente arquivos estáticos. O servidor Node.js continua necess�
 2. No serviço, configure `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `ADMIN_KEY`, `ACCESS_CODE` e `ALLOWED_ORIGINS`. Para este repositório, a origem do Pages é `https://lobaque29.github.io` (sem `/bh-radio`). Inclua `http://localhost:3000` se também quiser testar localmente.
 3. Em **Settings → Secrets and variables → Actions → Variables**, crie `BACKEND_URL` com a origem HTTPS do servidor, por exemplo `https://seu-app.onrender.com` (sem caminho final). É uma variável pública do frontend, não um segredo.
 4. Em **Settings → Pages**, escolha **GitHub Actions** como fonte de publicação.
-5. Faça push para `main`. O workflow só executa quando `BACKEND_URL` estiver definido; então valida a URL, instala as dependências, inclui o bundle do LiveKit e publica a pasta `public/`.
-6. Se o Pages não permitir publicação enquanto o repositório for privado no seu plano, será necessário ajustar o plano ou a visibilidade do repositório.
+5. Depois de configurar `BACKEND_URL`, abra **Actions → Deploy GitHub Pages → Run workflow** para a primeira publicação. Os pushes seguintes para `main` publicam automaticamente.
+6. O repositório e o site do Pages são públicos; qualquer pessoa pode consultar e copiar o código.
 
 O endereço do app será `https://lobaque29.github.io/bh-radio/`. O domínio do backend é uma configuração pública do frontend; as chaves do LiveKit e `ADMIN_KEY` ficam somente nas variáveis do servidor. No plano gratuito da Render o serviço pode dormir após inatividade.
 
